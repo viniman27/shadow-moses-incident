@@ -4,7 +4,7 @@ Projeto experimental: Metal Gear Solid 1 como base, Leon como protagonista e câ
 
 **Estado: fundação técnica; a fusão ainda NÃO está implementada nem jogável.**
 
-O primeiro marco executado foi reconstruir MGS Integral de PlayStation: build original com SHA-256 idêntico ao esperado e build de desenvolvimento compilado. Não houve boot em emulador nem teste de gameplay. Não há câmera nova, combate novo ou modelo de Leon integrado.
+MGS Integral foi reconstruído (build original com SHA-256 idêntico ao esperado) e executado em PCSX-Redux/OpenBIOS. Um teste local automatizado entra em Loading Dock pelo seletor de fases e verifica andar, rastejar com deslocamento sustentado e levantar pela memória do jogo. Isso valida a base original, não a fusão: ainda não há câmera nova, combate novo ou modelo de Leon integrado.
 
 ## Objetivo
 
@@ -26,10 +26,11 @@ Revisões fixadas em `upstreams.lock.json`. Os repositórios externos são check
 - [Critérios de aceitação](docs/ACCEPTANCE.md)
 - [Build reproduzível](docs/BUILD.md)
 - [Resultados efetivamente verificados](docs/VERIFICATION.md)
+- [Teste local de fase e locomoção](docs/TESTING.md)
 
 ## Limites de distribuição
 
-Este repositório publica somente documentação original de integração neste estágio. Não contém imagens de discos, BIOS, executáveis reconstruídos, SDKs, modelos, texturas, áudio ou código descompilado dos jogos. O futuro formato de entrega deverá permitir alterações locais sobre arquivos que o usuário tenha direito de utilizar.
+Este repositório publica documentação, automação de controle e testes originais de integração neste estágio. Não contém imagens de discos, BIOS, executáveis reconstruídos, SDKs, modelos, texturas, áudio ou código descompilado dos jogos. O futuro formato de entrega deverá permitir alterações locais sobre arquivos que o usuário tenha direito de utilizar.
 
 Disponibilidade pública de uma descompilação não equivale a uma licença irrestrita de reutilização. A licença de RE4 exclui expressamente o código reconstruído do jogo/SDK/middleware de seu CC0. Não foi encontrado LICENSE/COPYING na raiz de MGS. Não se presume autorização para redistribuição nem se promete imunidade a reclamações de titulares.
 

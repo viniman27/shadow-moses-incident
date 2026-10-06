@@ -1,12 +1,19 @@
-# Default deny: publish only the explicitly reviewed project documents.
+# Default deny: publish only explicitly reviewed original project files.
 /*
 !/.gitignore
 !/README.md
 !/docs/
 !/upstreams.lock.json
+!/tools/
+/tools/*
+!/tools/enter_dock.lua
+!/tests/
+/tests/*
+!/tests/run_stage_smoke.py
 /docs/*
 !/docs/ARCHITECTURE.md
 !/docs/ACCEPTANCE.md
 !/docs/BUILD.md
 !/docs/VERIFICATION.md
+!/docs/TESTING.md
 # Never force-add references, SDKs, game images, assets or local logs.

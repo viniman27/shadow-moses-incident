@@ -57,7 +57,7 @@ A leitura atual localizou os pontos; não reconstruiu ainda o grafo completo de 
 
 ## Ordem de gates
 
-A. Build original e dev: executados. Boot baseline: pendente de arquivos do jogo e emulador configurado.
+A. Build original e dev: executados. Boot e smoke test headless no dock com andar, rastejar e levantar: executados; ver TESTING.md. Regressão visual e campanha permanecem pendentes.
 B. Spike de câmera no Loading Dock (`s00a`), com alternância para câmera original e rastejo preservado.
 C. Pistola: mira, colisão do disparo, recarga e alertas, sem comprometer stealth.
 D. Leon: pipeline local de modelo/rig/animações, incluindo deitar/rastejar/levantar.
