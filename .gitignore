@@ -14,6 +14,7 @@
 !/tests/
 /tests/*
 !/tests/run_stage_smoke.py
+!/tests/run_wall_smoke.py
 /docs/*
 !/docs/ARCHITECTURE.md
 !/docs/ACCEPTANCE.md

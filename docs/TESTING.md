@@ -55,6 +55,22 @@ No checkpoint de rastejo (controle 320), exige tambem profundidade do ponto de r
 
 Para a inspecao local, use o `stage_test.lua` recem-gerado pelo mesmo build. Crie uma copia local, acrescente `PCSX.pauseEmulator()` em um frame de controle desejado e lance o mesmo executavel com `-dofile` (nao `-lua`) e sem `-no-ui`. Nao reutilize enderecos de outro asm.map. Capture somente a janela do emulador; nao publique screenshots/assets. Frames exercitados: 149 (parado), 205 (apos andar), 320 (rastejando), 530 (original apos L3) e 550 (experimental apos segundo L3). Encerre a instancia antes do proximo teste; nao confunda encerramento manual de uma inspecao com PASS do smoke completo.
 
+## Rota continua junto a parede
+
+```text
+python tests/run_wall_smoke.py --disc "CAMINHO/Disco 1.cue" --emulator "CAMINHO/pcsx-redux.exe"
+```
+
+Executa primeiro o smoke completo `--camera`, regenerando os simbolos do build atual; depois executa uma segunda instancia, sequencial, para a rota longa. Usa apenas controles e leitura de RAM. Observa 1141 frames (140..1280), incluindo rastejo de ida, aproximacao de costas sem girar e afastamento. Exige deslocamento real em tres janelas com yaw constante, camera ativa, ausencia de dano, bone6 dentro do viewport e zoom entre 192 e 320.
+
+A guarda nova mede `zoom / profundidade_do_bone6` nos frames800..979: no maximo `320/1200`. Assim detecta ampliacao excessiva sem exigir uma distancia fisica minima atraves da parede. Confere ainda o olho no mesmo limite de colisao no checkpoint979, zoom320 em espaco livre e recuperacao de zoom320 longe/em afastamento (599/1100). Esse limite experimental e especifico da rota, nao uma medida universal do corpo nem prova de colisao volumetrica. A guarda antiga de profundidade no controle320 permanece inalterada.
+
+O prototipo compensa retracao forte com zoom proporcional ao comprimento do boom ja limitado pelo hazard, limitado a192..320; nao usa a oscilacao da cabeca para dirigir o zoom. Nao altera o olho, alvo, margem100 nem a locomocao. Aumentar campo de visao pode expor clipping em outros locais: capturas reais continuam obrigatorias. Nao ha suavizacao temporal implementada.
+
+Para uma inspecao, acrescente `--pause 979` (tambem exercitados599,800,1279). O script executa a regressao primeiro, remove marcador antigo antes de comecar e pausa somente depois de gravar `local/smoke/wall-checkpoint.txt` com o frame pedido. Aceita140..1279: o frame terminal1280 chama quit. Capture apenas a janela e encerre a arvore do processo indicada por EMULATOR_PID. Encerramento manual NAO e PASS; a aprovacao exige o comando completo sem pause e comparacao das imagens.
+
+Evidencias locais: `wall-regression.log`, `wall-result.txt`, `wall-analysis.json` e `wall-emulator.log`, todos em `local/smoke`. Cada execucao sobrescreve seus resultados; preservar comparacoes antes da seguinte. O teste gera instrumentacao atualizada, ao contrario dos helpers antigos vinculados ao binario baseline.
+
 ## Fluxo de entrega
 
 A cada iteracao bem-sucedida: executar a prova relevante, revisar codigo/diff e conteudo rastreado, commitar somente arquivos originais autorizados, fazer push e comparar o SHA remoto com o local. Experimento falho nao deve ser anunciado como feature concluida. Nao publicar imagens, assets, dumps, logs pessoais ou executaveis dos jogos.

@@ -116,6 +116,30 @@ static void SMI_ApplyShoulderCamera(void)
     gUnkCameraStruct2_800B7868.position = eye;
     gUnkCameraStruct2_800B7868.target = target;
     gUnkCameraStruct2_800B7868.zoom = 320;
+    if (blocked)
+    {
+        SVECTOR boom;
+        int zoom;
+
+        /* A wall can leave no room to move the eye farther back. Widen the
+         * projection instead of forcing a minimum distance through it.
+         * Use the constrained boom, not the animated head, so crawling's
+         * head bob does not drive the field of view. These bounds are
+         * experimental dock values, not near-plane volume collision. */
+        boom.vx = eye.vx - pivot.vx;
+        boom.vy = eye.vy - pivot.vy;
+        boom.vz = eye.vz - pivot.vz;
+        zoom = GV_VecLen3(&boom) * 320 / 1000;
+        if (zoom < 192)
+        {
+            zoom = 192;
+        }
+        else if (zoom > 320)
+        {
+            zoom = 320;
+        }
+        gUnkCameraStruct2_800B7868.zoom = zoom;
+    }
     MakeRotate(&eye, &target, &gUnkCameraStruct2_800B7868.rotate,
                &gUnkCameraStruct2_800B7868.track);
     SMI_CameraActive = 1;

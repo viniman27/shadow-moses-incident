@@ -112,6 +112,23 @@ Build DEV_EXE SHA-256: `21537713e0ae8698230babd3879bf8a19940e0c0c2cbac28dc0cfcca
 
 Logs locais: `local/transition-red.log`, `local/transition-green.log` (tentativa rejeitada), `local/transition-envelope-build.log`, `local/transition-envelope-smoke.log` e `local/transition-matching-build.log`. Baseline preservada em `local/baseline/transition-start`. As capturas permanecem locais, em `local/smoke/visual-evidence/transition-*.png`.
 
+## Iteração: compensação de ampliação sob retração forte
+
+A nova rota contínua confirmou que o raio único encurta simultaneamente a distância traseira e lateral. Perto da parede, no controle979, os afastamentos caem dos nominais1600/450 para354/99; a cabeça permanece dentro do viewport, mas a imagem mostra um close-up excessivo. O replay permite aproximar rastejando de costas sem mudar yaw, separando translação de giro.
+
+Foi escolhido compensar a projeção, não forçar uma distância mínima fisicamente indisponível. Quando o hazard retrai o olho, o zoom passa a ser `clamp(comprimento_do_boom * 320 / 1000, 192, 320)`. O boom é medido depois da colisão; olho, alvo, margem100, envelope vertical e gameplay permanecem intactos. Não usa a oscilação animada da cabeça para controlar o campo de visão. Os limites são experimentais para s00a.
+
+- **RED real:** antes da mudança, `tests/run_wall_smoke.py` falhou com ampliação máxima `zoom / profundidade_do_bone6 = 0,4186`, acima do limite local `320/1200 = 0,2667` nos controles800..979. Não se trata de um mínimo físico a impor à câmera. O diagnóstico anterior de profundidade950 continua registrando falta de espaço; a nova prova mede a grandeza que o zoom altera, sem remover a guarda antiga do smoke original.
+- **GREEN repetido:** duas execuções completas passaram, cada uma com1141 amostras únicas140..1280, câmera ativa, cabeça no viewport, ausência de dano e três janelas de deslocamento rastejando com yaw3072 constante. Máximo observado0,2512. No contato979: profundidade785,2, zoom192, escala0,2445, contra0,4075 com zoom320. Redução de40% da escala local de projeção, não uma medição da área total do corpo na imagem.
+- **Restrições preservadas:** olho junto ao limite anterior, aproximadamente(-3848,350,-1221); não foi empurrado através da parede. Zoom320 em espaço livre e nos checkpoints de afastamento599/1100. Os testes anteriores de andar, deitar, rastejar, levantar, primeira pessoa, transições e L3 off/on passaram antes de cada rota longa. O teste obtém os símbolos do build corrente, sem reutilizar endereços da baseline.
+- **Imagem renderizada:** captura979 antes/depois mostra corpo menor e mais cenário nas laterais, sem novo obstáculo cobrindo Snake nesse checkpoint. Inspeções599,800 e1279 confirmaram personagem visível; longe a composição é semelhante à anterior. Corpo ainda grande/cortado em algumas poses, créditos ainda se sobrepõem e o efeito translúcido já observado no retorno continua não diagnosticado. Imagens estáticas não aprovam suavidade temporal.
+
+Build DEV_EXE: exit0, SHA-256 `6b5d437d811225375da236c7bd3c7a3d0cc494ad45a49f071b24434b98a3200f`. Matching: exit0, SHA-256 original preservado. Instalador aplicado duas vezes, removido com igualdade exata ao original e reinstalado com igualdade aos bytes anteriores.
+
+Evidências locais: `local/zoom-red.log`, `local/zoom-build.log`, `local/zoom-green.log`, `local/zoom-final-smoke.log`, `local/zoom-matching.log`; capturas `local/smoke/visual-evidence/zoom-fixed-{599,800,979,1279}.png` e montagem `zoom-comparison-979.png`. Baseline anterior preservada em `local/baseline/wall-route-start`. Nada disso é publicado.
+
+A compensação melhora este close-up; não recupera o afastamento lateral, não implementa suavização nem colisão volumétrica do near-plane. Campo de visão maior exige revalidar outros cantos/obstáculos. Leon, combate e campanha permanecem pendentes.
+
 ## Limitações reais
 
 - Boot e recorte automatizado de locomoção executados; campanha completa não testada.
