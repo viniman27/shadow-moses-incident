@@ -1,0 +1,12 @@
+# Default deny: publish only the explicitly reviewed project documents.
+/*
+!/.gitignore
+!/README.md
+!/docs/
+!/upstreams.lock.json
+/docs/*
+!/docs/ARCHITECTURE.md
+!/docs/ACCEPTANCE.md
+!/docs/BUILD.md
+!/docs/VERIFICATION.md
+# Never force-add references, SDKs, game images, assets or local logs.

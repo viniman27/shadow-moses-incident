@@ -1,0 +1,20 @@
+{
+  "mgs_reversing": {
+    "url": "https://github.com/FoxdieTeam/mgs_reversing",
+    "commit": "7b66372bcf156249560c90918d9472a47aabf3c5",
+    "local_directory": "references/mgs_reversing",
+    "role": "base: MGS Integral PS1"
+  },
+  "re4": {
+    "url": "https://github.com/adonis-singh/re4",
+    "commit": "9b76ff003081d6ece8b838453fb8310743a972c7",
+    "local_directory": "references/re4",
+    "role": "behavior and architecture reference: G4BE08 GameCube debug"
+  },
+  "psyq_sdk": {
+    "url": "https://github.com/FoxdieTeam/psyq_sdk",
+    "commit": "fec561c5771a981a6090c315cbe338f7967137cd",
+    "local_directory": "references/psyq_sdk",
+    "role": "local-only MGS upstream build toolchain"
+  }
+}
