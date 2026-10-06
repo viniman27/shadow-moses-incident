@@ -25,7 +25,7 @@ Os argumentos sao caminhos de arquivos locais reais, nao downloads. O teste roda
 2. `tools/enter_dock.lua` aguarda o seletor de desenvolvimento e envia dois Down e Circle via API do controle emulado. Nao altera memoria nem o codigo do jogo.
 3. O teste exige `s00a` e conclusao do carregamento do scenario no log, nao apenas a selecao da fase.
 4. Aguarda a sequencia inicial devolver o controle antes de enviar comandos. Compara coordenadas e flags ao andar, agachar/entrar em rastejo, manter deslocamento rastejando e levantar.
-5. Duas amostras durante rastejo devem conter GROUND + MOVE e posicoes diferentes. So a transicao de agachar/deitar nao satisfaz a verificacao.
+5. A janela320..330 exige pelo menos8 de11 leituras com GROUND + MOVE e deslocamento de pelo menos50 unidades entre leituras de movimento. Mantem ainda a comparacao com o final do rastejo350. Isso evita depender da fase exata em que Vsync interrompe um tick, sem aceitar somente flag de movimento contra uma parede. A amostra geometrica da camera continua exatamente em320.
 
 A rota anda para a direita e rasteja de volta para a esquerda pelo trecho ja percorrido. Andar para cima na posicao inicial termina encostado na parede; tentar continuar para a direita deitado pode ficar sem deslocamento. A fase e as colisoes nao sao modificadas para fazer o teste passar.
 

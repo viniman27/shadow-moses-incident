@@ -129,6 +129,24 @@ Evidências locais: `local/zoom-red.log`, `local/zoom-build.log`, `local/zoom-gr
 
 A compensação melhora este close-up; não recupera o afastamento lateral, não implementa suavização nem colisão volumétrica do near-plane. Campo de visão maior exige revalidar outros cantos/obstáculos. Leon, combate e campanha permanecem pendentes.
 
+## Iteração: recuperar recuo perdido por obstáculo lateral
+
+No corredor exercitado, a restrição do raio diagonal deixava apenas1043 unidades traseiras, apesar de haver espaço para o recuo nominal1600 com um deslocamento lateral menor. O novo teste exigiu recuo>=1500 nos checkpoints400/1100 e falhou no build publicado anterior: `rear=1043 < 1500`.
+
+A proposta de ombro agora é limitada por uma consulta lateral; depois, o raio completo pivô–olho é sempre consultado e pode retrair novamente. Não basta validar duas pernas de um trajeto: a validação direta final evita aceitar uma proposta que corte um canto. A margem100, a altura por bone6 e a compensação de zoom permanecem. Isso não constitui colisão volumétrica do near-plane.
+
+A primeira implementação, com consulta lateral em toda atualização, foi rejeitada: o rastreamento de `GV_Time`/`GV_PassageTime` observou atualizações de três Vsyncs e atraso na transição de rastejo. A versão aprovada reutiliza apenas a **proposta lateral** por até oito ticks do jogo, reiniciando-a quando perde a câmera ou muda direção, mapa ou altura em mais de64 unidades. A colisão final não é armazenada: roda em toda atualização. A proposta antiga pode ser conservadora ou resultar em nova retração pelo raio final; não autoriza atravessar um obstáculo.
+
+Também foi isolada uma fragilidade no teste: no tick633, Vsync podia observar MOVE antes ou depois de ser ligado. A baseline teve11 leituras de rastejo na janela320..330; a versão com proposta reutilizada teve10, ambas percorrendo100 unidades. O teste agora exige8/11 leituras de movimento e deslocamento>=50, além da comparação com o final350; o checkpoint geométrico320 não foi deslocado. A tentativa lenta inicial tinha seis leituras sem MOVE no início dessa janela e não satisfaria o novo critério. Testes locais rejeitaram explicitamente apenas sete leituras ou flags sem deslocamento.
+
+- **GREEN repetido:** dois replays completos passaram, incluindo regressão anterior e1141 amostras da rota longa por execução. Recuo1600 em400/1100; ampliação máxima próxima0,2522, abaixo de0,2667. Olho continua do lado seguro do limite traseiro; a componente lateral perto do contato pode diminuir.
+- **Visual:** comparação no controle400 mostra corpo menor e maior área útil ao redor, com zoom320. A captura979 mantém a compensação no contato traseiro;1279 preserva Snake visível, mas o efeito translúcido anterior continua sem diagnóstico. Há cortes inferiores em algumas poses. São checkpoints de replay, não imagens pixel a pixel de uma animação idêntica, nem prova de suavidade.
+- **Build:** DEV_EXE exit0, SHA-256 `71b278b341a90e9c3fb53c52820d5db6988c415a37954943bd5fb746d3659746`. Matching exit0, hash original preservado. Instalador2x/remoção exata/restauração passou. Harness local do helper real passou72 casos aritméticos e um raio livre; usa raiz do host, não substitui GTE/emulador.
+
+Evidências locais: `local/lateral-red.log`, `local/lateral-green.log` e `local/lateral-retry.log` (tentativa rejeitada), `local/lateral-cache-green.log` (falha da leitura instantânea), `local/lateral-window-green.log`, `local/lateral-final-smoke.log` e `local/lateral-matching.log`. Baseline em `local/baseline/lateral-start`; imagens `lateral-before-400.png`, `lateral-fixed-{400,979,1279}.png` e `lateral-comparison-400.png` em `local/smoke/visual-evidence`.
+
+O ganho é recuperação de recuo em um corredor, não preservação universal do deslocamento lateral450. Proposta de ombro e enquadramento ainda exigem varredura de cantos, obstáculos móveis e inspeção temporal. Não foi medido desempenho de campanha nem demonstrada ausência geral de clipping.
+
 ## Limitações reais
 
 - Boot e recorte automatizado de locomoção executados; campanha completa não testada.

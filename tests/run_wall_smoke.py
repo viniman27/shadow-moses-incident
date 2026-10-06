@@ -142,8 +142,18 @@ for lo,hi,sign in [(360,480,-1),(650,800,1),(1020,1160,-1)]:
 assert rows[599]['status']==rows[979]['status']==0x40, 'Not settled prone at comparison poses'
 assert rows[599]['zoom']==rows[1100]['zoom']==320, 'Zoom failed to return after retreat'
 near = rows[979]
-# Keep the already-verified eye constrained; a fake depth fix through the wall fails.
-assert abs(near['eye'][0]+3848)<=5 and abs(near['eye'][2]+1221)<=5, ('near eye changed',near)
+# The rear wall limit must not be crossed. Lateral adaptation may move the eye
+# toward the pivot, but not beyond the previous same-side clearance at contact.
+assert abs(near['eye'][0]+3848)<=5, ('rear wall clearance changed',near)
+assert 0 <= near['eye'][2]-near['target'][2] <= 105, ('unsafe contact lateral offset',near)
+for frame in (400,1100):
+    row = rows[frame]
+    assert row['yaw']==3072, ('corridor yaw',frame)
+    rear = row['eye'][0]-(row['target'][0]+1600)
+    # Here the side wall, not the rear wall, wasted usable boom length.
+    # This is a scene-specific recovery guard, never a runtime minimum.
+    print(f'CORRIDOR {frame}: rear={rear}')
+    assert rear >= 1500, f'Unnecessary side-wall retreat at {frame}: rear={rear} < 1500'
 summary = {'sample_count':len(rows),'checkpoints':[rows[i] for i in (400,599,800,840,979,1100,1279)],
            'max_near_scale':max(rows[i]['scale'] for i in range(800,980)),
            'limit_scale':320/1200,

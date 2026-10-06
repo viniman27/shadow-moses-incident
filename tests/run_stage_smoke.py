@@ -51,6 +51,7 @@ local status = ffi.cast('uint32_t*', ram + %d)
 local pad = PCSX.SIO0.slots[1].pads[1]
 local buttons = PCSX.CONSTS.PAD.BUTTON
 local samples = {}
+local crawlSampled = false
 local function sample(label)
     samples[#samples + 1] = string.format('%%s x=%%d z=%%d status=%%x', label, pos[0], pos[2], tonumber(status[0]))
 end
@@ -78,7 +79,15 @@ SMI.testListener = PCSX.Events.createEventListener('GPU::Vsync', function()
     if control == 220 then pad.setOverride(buttons.CROSS) end
     if control == 226 then pad.clearOverride(buttons.CROSS) end
     if control == 280 then sample('before_crawl'); pad.setOverride(buttons.LEFT) end
-    if control == 320 then sample('during_crawl') end
+    -- Vsync can interrupt the same gameplay tick before or after MOVE is set.
+    -- Require a bounded run of moving samples, not one phase-sensitive read.
+    if control >= 320 and control <= 330 then
+        sample('crawl_window_' .. tostring(control))
+        if not crawlSampled and bit.band(tonumber(status[0]), 0x50) == 0x50 then
+            sample('during_crawl')
+            crawlSampled = true
+        end
+    end
     if control == 350 then sample('after_crawl'); pad.clearOverride(buttons.LEFT) end
     if control == 400 then pad.setOverride(buttons.CROSS) end
     if control == 406 then pad.clearOverride(buttons.CROSS) end
@@ -141,7 +150,8 @@ end
 '''
     script = script.replace('function SMI.stage()', camera_probe % tuple(camera_symbols.values()) + '\nfunction SMI.stage()')
     script = script.replace("sample('before_walk');", "sampleCamera('standing'); sample('before_walk');")
-    script = script.replace("sample('during_crawl')", "sampleCamera('crawling'); sample('during_crawl')")
+    script = script.replace("    if control >= 320 and control <= 330 then",
+                            "    if control == 320 then sampleCamera('crawling') end\n    if control >= 320 and control <= 330 then")
     script = script.replace('if control >= 600 then', '''
     if control >= 280 and control <= 434 and control % 2 == 0 then sampleMotion(control) end
     if control == 440 then pad.setOverride(buttons.TRIANGLE) end
@@ -200,6 +210,11 @@ for label, x, z, status in re.findall(r'(\w+) x=(-?\d+) z=(-?\d+) status=([0-9a-
 assert samples['before_walk'][2] & 0x20000080 == 0, 'Player not controllable'
 assert samples['before_walk'][:2] != samples['after_walk'][:2], 'Walking did not change position'
 assert samples['after_walk'][2] & 0x10, 'Walking flag absent'
+window = [samples[f'crawl_window_{frame}'] for frame in range(320,331)]
+moving = [s for s in window if s[2] & 0x50 == 0x50]
+assert len(moving) >= 8, f'Insufficient sustained crawl samples: {len(moving)}/11'
+assert abs(moving[-1][0]-moving[0][0])+abs(moving[-1][1]-moving[0][1]) >= 50, 'No sustained crawl window displacement'
+assert 'during_crawl' in samples, 'No moving crawl observation in the bounded window'
 assert samples['after_crawl'][2] & 0x50 == 0x50, 'Ground + moving flags absent'
 assert samples['during_crawl'][2] & 0x50 == 0x50, 'Sustained crawl flags absent'
 assert samples['during_crawl'][:2] != samples['after_crawl'][:2], 'Sustained crawling did not change position'

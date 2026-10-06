@@ -8,15 +8,49 @@
 int SMI_CameraEnabled = 1;
 int SMI_CameraActive = 0;
 int SMI_CameraCollision = 0;
+static int SMI_SideYaw = -1;
+static int SMI_SideDistance = 450;
+static int SMI_SideHeight;
+static int SMI_SideMap;
+static unsigned int SMI_SideProbeTime;
+
+/* Point-ray constraint with the existing fixed world-space gap. The caller
+ * owns GM_CurrentMap. This is not a near-plane volume sweep. */
+static int SMI_LimitCameraRay(HZD_HDL *hzd, SVECTOR *from, SVECTOR *to)
+{
+    SVECTOR hit, delta;
+    int distance, retained;
+
+    if (!HZD_OnlineHazardCheck(hzd, from, to, HZD_CHK_ALL, 0))
+    {
+        return 0;
+    }
+    HZD_GetOnlinePoint(&hit);
+    delta.vx = hit.vx - from->vx;
+    delta.vy = hit.vy - from->vy;
+    delta.vz = hit.vz - from->vz;
+    distance = GV_VecLen3(&delta);
+    retained = distance > 100 ? distance - 100 : 0;
+    *to = *from;
+    if (distance > 0)
+    {
+        to->vx += delta.vx * retained / distance;
+        to->vy += delta.vy * retained / distance;
+        to->vz += delta.vz * retained / distance;
+    }
+    return 1;
+}
 
 static void SMI_ApplyShoulderCamera(void)
 {
-    SVECTOR pivot, eye, target, forward, side, hit;
+    SVECTOR pivot, eye, target, forward, side;
     int height;
     int saved_map;
     int blocked;
+    int was_active;
     CONTROL *control;
 
+    was_active = SMI_CameraActive;
     SMI_CameraActive = 0;
     SMI_CameraCollision = 0;
     control = GM_PlayerControl;
@@ -76,9 +110,6 @@ static void SMI_ApplyShoulderCamera(void)
     }
     GV_DirVec2(control->rot.vy, 1600, &forward);
     GV_DirVec2(control->rot.vy + 1024, 450, &side);
-    eye = pivot;
-    eye.vx += side.vx - forward.vx;
-    eye.vz += side.vz - forward.vz;
     target = pivot;
     target.vx += forward.vx;
     target.vz += forward.vz;
@@ -86,30 +117,53 @@ static void SMI_ApplyShoulderCamera(void)
     /* Query MGS hazards synchronously, then restore the map context. */
     saved_map = GM_CurrentMap;
     GM_SetCurrentMap(control->map->index);
-    blocked = HZD_OnlineHazardCheck(control->map->hzd, &pivot, &eye, HZD_CHK_ALL, 0);
+    /* Cache only the shoulder proposal, never the final collision result.
+     * An extra full hazard scan every update stalls the dock's posture
+     * timing. Refresh the proposal after a stable turn, then every 8 game
+     * ticks. A stale proposal can lose room, but the full ray below still
+     * constrains the current eye on EVERY update, including moving hazards. */
+    if (!was_active || SMI_SideYaw != control->rot.vy ||
+        SMI_SideMap != control->map->index ||
+        pivot.vy < SMI_SideHeight - 64 || pivot.vy > SMI_SideHeight + 64)
+    {
+        SMI_SideYaw = control->rot.vy;
+        SMI_SideMap = control->map->index;
+        SMI_SideHeight = pivot.vy;
+        SMI_SideDistance = 450;
+        SMI_SideProbeTime = (unsigned int)GV_Time - 7;
+    }
+    else if ((unsigned int)GV_Time - SMI_SideProbeTime >= 8)
+    {
+        SVECTOR shoulder;
+
+        shoulder = pivot;
+        shoulder.vx += side.vx;
+        shoulder.vz += side.vz;
+        if (SMI_LimitCameraRay(control->map->hzd, &pivot, &shoulder))
+        {
+            shoulder.vx -= pivot.vx;
+            shoulder.vy -= pivot.vy;
+            shoulder.vz -= pivot.vz;
+            SMI_SideDistance = GV_VecLen3(&shoulder);
+        }
+        else
+        {
+            SMI_SideDistance = 450;
+        }
+        SMI_SideProbeTime = GV_Time;
+        SMI_SideHeight = pivot.vy;
+    }
+    if (SMI_SideDistance < 450)
+    {
+        GV_DirVec2(control->rot.vy + 1024, SMI_SideDistance, &side);
+        SMI_CameraCollision = 1;
+    }
+    eye = pivot;
+    eye.vx += side.vx - forward.vx;
+    eye.vz += side.vz - forward.vz;
+    blocked = SMI_LimitCameraRay(control->map->hzd, &pivot, &eye);
     if (blocked)
     {
-        HZD_GetOnlinePoint(&hit);
-        /* Keep a fixed world-space gap, not 25% of all available room.
-         * Proportional padding unnecessarily magnifies Snake near walls.
-         * This is still a point-ray constraint, not a near-plane sweep. */
-        {
-            SVECTOR delta;
-            int distance, retained;
-
-            delta.vx = hit.vx - pivot.vx;
-            delta.vy = hit.vy - pivot.vy;
-            delta.vz = hit.vz - pivot.vz;
-            distance = GV_VecLen3(&delta);
-            retained = distance > 100 ? distance - 100 : 0;
-            eye = pivot;
-            if (distance > 0)
-            {
-                eye.vx += delta.vx * retained / distance;
-                eye.vy += delta.vy * retained / distance;
-                eye.vz += delta.vz * retained / distance;
-            }
-        }
         SMI_CameraCollision = 1;
     }
     GM_SetCurrentMap(saved_map);
