@@ -95,6 +95,23 @@ Evidências locais: `local/smoke/visual-evidence/wall-before-crawl.png`, `wall-f
 
 A margem de 100 é experimental. Hazard continua sendo raio, não volume do near-plane; não foi validado um conjunto amplo de paredes, cantos, teto ou movimento contínuo da câmera. O próximo recorte deve medir enquadramento durante aproximação/afastamento e a perda do afastamento lateral, antes de outra mudança de geometria.
 
+## Iteração: enquadramento durante mudanças de postura
+
+O rastreamento local observou 461 Vsyncs (controle 140–600) e revelou uma falha não coberta pelas poses paradas: `PLAYER_GROUND` muda antes do término da animação. A altura nominal caía cedo ao deitar e subia cedo ao levantar. Na captura anterior em 414, Snake desaparecia abaixo da imagem.
+
+A leitura de `GM_SnakeCamera` com desconto condicionado a `PLAYER_GROUND` também não é um landmark confiável durante toda a transição: a origem usa o stance interno da animação e pode diferir da flag. O novo teste observa diretamente a transformação mundial do bone6, com layouts do upstream fixado e validação dos ponteiros.
+
+- **RED:** `run_stage_smoke.py --camera` passou a exigir o osso dentro do viewport em 78 amostras, a cada dois Vsyncs do controle 280 ao 434, incluindo virada, descida, rastejo, parada e subida. Falhou no build anterior em 292, projeção Y=221,5 (limite absoluto 112).
+- **Hipótese rejeitada:** interpolar as alturas nominais usando `CONTROL.height` corrigiu o começo, mas falhou em 304 (Y=-114,9). O controle não segue exatamente a cabeça. Esse experimento foi removido, não publicado como solução.
+- **Correção:** manter a altura nominal, mas restringir o pivô a até 250 unidades acima/abaixo do bone6 real antes de consultar hazards. As poses assentadas do recorte mantêm as alturas anteriores. O hook cede se o objeto/osso não estiver disponível. Não altera animação, flags ou locomoção.
+- **GREEN:** as 78 amostras passaram; maior módulo Y observado foi 104,9 em 292. Em 414, Y=-48,3. Guarda de parede em 320 continuou com profundidade 993,0. Regressões de locomoção, primeira pessoa e L3 passaram.
+
+- **Imagem renderizada:** capturas comparativas nos controles 294 e 414 confirmaram Snake visível. Em 414, ele reaparece onde a baseline mostrava apenas cenário; em 294, o corpo ocupa menos da imagem. Ainda há enquadramento apertado no rastejo. As capturas verificam checkpoints, não fluidez temporal de todo o replay.
+
+Build DEV_EXE SHA-256: `21537713e0ae8698230babd3879bf8a19940e0c0c2cbac28dc0cfcca6cec9378`. Matching passou com o hash original preservado. O limite de 250 é experimental e específico do modelo de Snake neste recorte; um futuro modelo de Leon exige remapeamento explícito do osso. Não é uma prova de enquadramento universal, suavização temporal ou colisão volumétrica.
+
+Logs locais: `local/transition-red.log`, `local/transition-green.log` (tentativa rejeitada), `local/transition-envelope-build.log`, `local/transition-envelope-smoke.log` e `local/transition-matching-build.log`. Baseline preservada em `local/baseline/transition-start`. As capturas permanecem locais, em `local/smoke/visual-evidence/transition-*.png`.
+
 ## Limitações reais
 
 - Boot e recorte automatizado de locomoção executados; campanha completa não testada.

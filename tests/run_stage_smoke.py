@@ -100,7 +100,7 @@ script = f'SMI_RESULT_PATH = {json.dumps(result_path.as_posix())}\n' + script
 if args.camera:
     camera_symbols = {}
     for symbol in ('SMI_CameraActive', 'SMI_CameraEnabled', 'SMI_CameraCollision',
-                   'gUnkCameraStruct2_800B7868', 'GM_Camera', 'GM_SnakeCamera'):
+                   'gUnkCameraStruct2_800B7868', 'GM_Camera', 'GM_SnakeCamera', 'GM_PlayerBody'):
         matches = set(re.findall(r'^\s*([0-9A-Fa-f]{8})\s+' + symbol + r'\s*$',
                                  map_path.read_text(), re.MULTILINE))
         assert len(matches) == 1, f'Missing/ambiguous camera symbol: {symbol}'
@@ -112,6 +112,22 @@ local cameraCollision = ffi.cast('int32_t*', ram + %d)
 local cameraView = ffi.cast('int16_t*', ram + %d)
 local cameraSystem = ffi.cast('uint8_t*', ram + %d)
 local snakeCamera = ffi.cast('int16_t*', ram + %d)
+local playerBody = ffi.cast('uint32_t*', ram + %d)
+local function sampleMotion(frame)
+    assert(cameraActive[0] == 1, 'Shoulder camera inactive during posture motion')
+    -- Pinned PS1 layout: OBJECT.objs=0; DG_OBJS.objs=0x48;
+    -- DG_OBJ stride=0x5c; MATRIX.t=0x14. Observe bone6 directly:
+    -- PLAYER_GROUND changes before the animation's stance/camera offset.
+    local body = bit.band(tonumber(playerBody[0]), 0x1fffff)
+    assert(body > 0 and body < 0x1ffffc, 'Invalid player body pointer')
+    local objs = bit.band(tonumber(ffi.cast('uint32_t*', ram + body)[0]), 0x1fffff)
+    assert(objs > 0 and objs + 0x48 + 6 * 0x5c + 0x20 <= 0x200000, 'Invalid player object pointer')
+    assert(ffi.cast('int16_t*', ram + objs + 0x2e)[0] > 6, 'Missing head bone')
+    local bone = ffi.cast('int32_t*', ram + objs + 0x48 + 6 * 0x5c + 0x14)
+    samples[#samples + 1] = string.format('MOTION %%d eye=%%d,%%d,%%d target=%%d,%%d,%%d head=%%d,%%d,%%d',
+        frame, cameraView[0], cameraView[1], cameraView[2], cameraView[4], cameraView[5], cameraView[6],
+        bone[0], bone[1], bone[2])
+end
 local function sampleCamera(label)
     samples[#samples + 1] = string.format('CAM %%s active=%%d enabled=%%d collision=%%d height=%%d first=%%d',
         label, tonumber(cameraActive[0]), tonumber(cameraEnabled[0]), tonumber(cameraCollision[0]),
@@ -127,6 +143,7 @@ end
     script = script.replace("sample('before_walk');", "sampleCamera('standing'); sample('before_walk');")
     script = script.replace("sample('during_crawl')", "sampleCamera('crawling'); sample('during_crawl')")
     script = script.replace('if control >= 600 then', '''
+    if control >= 280 and control <= 434 and control % 2 == 0 then sampleMotion(control) end
     if control == 440 then pad.setOverride(buttons.TRIANGLE) end
     if control == 470 then sampleCamera('first_person') end
     if control == 480 then pad.clearOverride(buttons.TRIANGLE) end
@@ -198,8 +215,11 @@ if args.camera:
     import math
     framing = re.findall(r'FRAME (\w+) eye=([-\d,]+) target=([-\d,]+) head=([-\d,]+)', evidence)
     assert {row[0] for row in framing} == {'standing', 'crawling', 'first_person', 'disabled', 'restored'}, 'Missing framing samples'
+    motion = re.findall(r'MOTION (\d+) eye=([-\d,]+) target=([-\d,]+) head=([-\d,]+)', evidence)
+    assert [int(row[0]) for row in motion] == list(range(280, 435, 2)), 'Missing/duplicate motion frames'
+    framing += [('motion_' + frame, eye, target, head) for frame, eye, target, head in motion]
     for label, eye, target, head in framing:
-        if label not in ('standing', 'crawling', 'restored'):
+        if label not in ('standing', 'crawling', 'restored') and not label.startswith('motion_'):
             continue
         eye, target, head = [tuple(map(int, v.split(','))) for v in (eye, target, head)]
         forward = [t - e for t, e in zip(target, eye)]

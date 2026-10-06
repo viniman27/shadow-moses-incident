@@ -56,6 +56,24 @@ static void SMI_ApplyShoulderCamera(void)
     /* control.mov is height above the feet, not the ground origin.
      * Match the object's floor-relative basis before adding camera height. */
     pivot.vy += height - control->height;
+    /* Flags change before the visible posture animation finishes. Constrain
+     * the requested height to the actual head, before querying hazards, so
+     * standing up cannot leave the still-prone model below the frame.
+     * This local 250-unit envelope preserves the settled dock poses. */
+    if (!GM_PlayerBody || !GM_PlayerBody->objs ||
+        GM_PlayerBody->objs->n_models <= 6)
+    {
+        return;
+    }
+    height = GM_PlayerBody->objs->objs[6].world.t[1];
+    if (pivot.vy < height - 250)
+    {
+        pivot.vy = height - 250;
+    }
+    else if (pivot.vy > height + 250)
+    {
+        pivot.vy = height + 250;
+    }
     GV_DirVec2(control->rot.vy, 1600, &forward);
     GV_DirVec2(control->rot.vy + 1024, 450, &side);
     eye = pivot;
