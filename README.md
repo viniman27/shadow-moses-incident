@@ -4,7 +4,7 @@ Projeto experimental: Metal Gear Solid 1 como base, Leon como protagonista e câ
 
 **Estado: protótipo de câmera limitado ao Loading Dock; a fusão completa ainda NÃO está implementada.**
 
-MGS Integral foi reconstruído (build original com SHA-256 idêntico ao esperado) e executado em PCSX-Redux/OpenBIOS. Um teste local automatizado entra em Loading Dock pelo seletor de fases e verifica andar, rastejar com deslocamento sustentado e levantar pela memória do jogo. Há agora uma câmera experimental DEV_EXE em s00a, com Snake visível nas capturas locais, altura por postura e toggle L3. Isso não aprova a câmera para a campanha: combate RE4 e Leon ainda não foram implementados. Consulte os limites e evidências em VERIFICATION.md.
+MGS Integral foi reconstruído (build original com SHA-256 idêntico ao esperado) e executado em PCSX-Redux/OpenBIOS. Um teste local automatizado entra em Loading Dock pelo seletor de fases e verifica andar, rastejar com deslocamento sustentado e levantar pela memória do jogo. Há agora uma câmera experimental DEV_EXE em s00a, com Snake visível nas capturas locais, altura por postura e toggle L3. A margem de retração junto à parede foi reduzida de proporcional para fixa, com melhora parcial confirmada no replay e nas imagens de rastejo/retorno; o corpo ainda ocupa muito espaço perto de obstáculos. Isso não aprova a câmera para a campanha: combate RE4 e Leon ainda não foram implementados. Consulte os limites e evidências em VERIFICATION.md.
 
 ## Objetivo
 

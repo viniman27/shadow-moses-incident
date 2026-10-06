@@ -212,6 +212,11 @@ if args.camera:
         relative = [h-e for h, e in zip(head, eye)]
         depth = sum(a*b for a,b in zip(relative, forward))
         assert depth > 0, f'{label}: Snake landmark behind camera'
+        # Dock wall replay: avoid the excessive body close-up at control 320.
+        # This depth guard is paired with same-pose rendered inspection.
+        if label == 'crawling':
+            print(f'WALL crawling: landmark depth={depth:.1f}')
+            assert depth >= 950, f'{label}: excessive wall close-up (depth={depth:.1f} < 950)'
         x = 320 * sum(a*b for a,b in zip(relative, right)) / depth
         y = 320 * sum(a*b for a,b in zip(relative, up)) / depth * 58 / 64
         print(f'FRAMING {label}: head landmark x={x:.1f} y={y:.1f}')

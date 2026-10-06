@@ -79,6 +79,22 @@ Capturas pausadas da janela PCSX-Redux confirmaram Snake visível no frame de co
 
 Isso aprova os dois consertos no recorte exercitado, **não o design final da câmera**. No rastejo e no retorno perto da parede, a retração aproxima muito o corpo; enquadramento, oclusão e suavização ainda precisam de trabalho. O radar/créditos originais podem sobrepor o personagem. Hazard é raio simples, não volume do near-plane. Não foi provada ausência geral de clipping.
 
+## Iteração: redução da retração excessiva junto à parede
+
+Recorte: mesmo replay de s00a, sem escrita de RAM de gameplay, com comparação visual no controle 320 (rastejo) e inspeção do retorno experimental em 550.
+
+- **Causa isolada:** depois do hazard, a câmera descartava 25% de toda a distância pivô–impacto. Isso adicionava uma aproximação proporcional desnecessária, além da retração fisicamente exigida pela parede. O afastamento lateral também diminui com a retração; essa característica não foi redesenhada.
+- **RED real:** a nova guarda de profundidade do ponto de referência no rastejo (`>= 950`) falhou no executável anterior: `817.6 < 950`, exit 1. As demais regressões de gameplay continuaram passando.
+- **Alteração mínima:** margem fixa experimental de 100 unidades ao longo do raio até o impacto, calculada com `GV_VecLen3`. Se a distância disponível não excede a margem, a câmera fica no pivô; distância zero não divide. Não força uma distância mínima através do obstáculo. Alturas, alvo, boom nominal e zoom foram preservados.
+- **GREEN repetido:** build DEV_EXE e duas execuções completas do smoke passaram. No rastejo, eye passou de `(-4020,357,-1120)` para `(-3849,357,-1078)` na mesma amostra de Snake `(-4826,141,-1321)`. A profundidade do landmark passou de 817,6 para 993,0; projeção vertical de -76,6 para -63,1. Andar, deitar/rastejar com deslocamento, levantar, primeira pessoa e L3 off/on passaram.
+- **Imagem renderizada:** comparação na mesma pose 320 confirmou redução do corpo em primeiro plano, sem novo obstáculo tapando Snake. Captura 550 também mostra corpo menor que a evidência anterior e Snake visível. O corpo ainda fica grande e cortado pela borda inferior; radar/créditos continuam sobrepostos. A melhoria é parcial, não aprovação do design final.
+
+Build DEV_EXE SHA-256: `3dca5bda53b8a30206eb02a6fb26344f737f8ac806bc9a5b9a98263a06012cb4`. Build matching passou com SHA-256 original inalterado. Instalador passou aplicação dupla, remoção com igualdade exata ao original e reinstalação. Um harness local compilado com GCC executou 72 casos de aritmética axial/diagonal e limites (inclusive distância zero); usa raiz quadrada do host e não substitui a execução PS1.
+
+Evidências locais: `local/smoke/visual-evidence/wall-before-crawl.png`, `wall-fixed-crawl.png`, `wall-fixed-restored.png` e diagnósticos correspondentes; baseline pré-alteração em `local/baseline/wall-start`. Logs de build em `local/wall-camera-build.log` e `local/wall-matching-build.log`. Nada disso é publicado.
+
+A margem de 100 é experimental. Hazard continua sendo raio, não volume do near-plane; não foi validado um conjunto amplo de paredes, cantos, teto ou movimento contínuo da câmera. O próximo recorte deve medir enquadramento durante aproximação/afastamento e a perda do afastamento lateral, antes de outra mudança de geometria.
+
 ## Limitações reais
 
 - Boot e recorte automatizado de locomoção executados; campanha completa não testada.

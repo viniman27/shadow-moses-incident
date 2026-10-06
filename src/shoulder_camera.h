@@ -72,9 +72,26 @@ static void SMI_ApplyShoulderCamera(void)
     if (blocked)
     {
         HZD_GetOnlinePoint(&hit);
-        eye.vx = pivot.vx + (hit.vx - pivot.vx) * 3 / 4;
-        eye.vy = pivot.vy + (hit.vy - pivot.vy) * 3 / 4;
-        eye.vz = pivot.vz + (hit.vz - pivot.vz) * 3 / 4;
+        /* Keep a fixed world-space gap, not 25% of all available room.
+         * Proportional padding unnecessarily magnifies Snake near walls.
+         * This is still a point-ray constraint, not a near-plane sweep. */
+        {
+            SVECTOR delta;
+            int distance, retained;
+
+            delta.vx = hit.vx - pivot.vx;
+            delta.vy = hit.vy - pivot.vy;
+            delta.vz = hit.vz - pivot.vz;
+            distance = GV_VecLen3(&delta);
+            retained = distance > 100 ? distance - 100 : 0;
+            eye = pivot;
+            if (distance > 0)
+            {
+                eye.vx += delta.vx * retained / distance;
+                eye.vy += delta.vy * retained / distance;
+                eye.vz += delta.vz * retained / distance;
+            }
+        }
         SMI_CameraCollision = 1;
     }
     GM_SetCurrentMap(saved_map);

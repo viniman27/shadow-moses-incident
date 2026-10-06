@@ -49,6 +49,8 @@ A API Lua do Redux testado omite `PCSX.CONSTS.PAD.BUTTON.L3`. O replay usa o ind
 
 O teste calcula a projecao aproximada de um ponto na altura do bone6. No rastejo desconta os 320 que MGS soma a GM_SnakeCamera. Rejeita um ponto atras da camera ou fora do viewport, mas NAO prova visibilidade do modelo, ausencia de clipping ou qualidade de enquadramento. Exige inspecao visual separada.
 
+No checkpoint de rastejo (controle 320), exige tambem profundidade do ponto de referencia >= 950 unidades. Esse limite detecta a aproximacao excessiva reproduzida no dock (817,6 antes da correcao); nao e uma distancia minima universal nem obriga a camera a atravessar paredes. Para aprovar este recorte, comparar imagens na mesma pose: corpo menor, Snake ainda visivel e nenhum novo obstaculo tapando a imagem. Conferir tambem o retorno experimental junto a parede (550). Continuam obrigatorios os asserts de locomocao, primeira pessoa e L3. Um ponto projetado dentro da tela nao aprova o design final.
+
 Para a inspecao local, use o `stage_test.lua` recem-gerado pelo mesmo build. Crie uma copia local, acrescente `PCSX.pauseEmulator()` em um frame de controle desejado e lance o mesmo executavel com `-dofile` (nao `-lua`) e sem `-no-ui`. Nao reutilize enderecos de outro asm.map. Capture somente a janela do emulador; nao publique screenshots/assets. Frames exercitados: 149 (parado), 205 (apos andar), 320 (rastejando), 530 (original apos L3) e 550 (experimental apos segundo L3). Encerre a instancia antes do proximo teste; nao confunda encerramento manual de uma inspecao com PASS do smoke completo.
 
 ## Fluxo de entrega
