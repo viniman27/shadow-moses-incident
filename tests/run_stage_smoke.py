@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--disc', type=Path, required=True)
 parser.add_argument('--emulator', type=Path, required=True)
+parser.add_argument('--camera', action='store_true', help='Also verify the compiled shoulder-camera prototype')
 args = parser.parse_args()
 exe = ROOT / 'references/mgs_reversing/obj_dev/_mgsi.exe'
 map_path = exe.with_name('asm.map')
@@ -96,6 +97,53 @@ if replay.exists():
 result_path = out / 'stage-result.txt'
 result_path.write_text('NOT_RUN', encoding='utf-8')
 script = f'SMI_RESULT_PATH = {json.dumps(result_path.as_posix())}\n' + script
+if args.camera:
+    camera_symbols = {}
+    for symbol in ('SMI_CameraActive', 'SMI_CameraEnabled', 'SMI_CameraCollision',
+                   'gUnkCameraStruct2_800B7868', 'GM_Camera', 'GM_SnakeCamera'):
+        matches = set(re.findall(r'^\s*([0-9A-Fa-f]{8})\s+' + symbol + r'\s*$',
+                                 map_path.read_text(), re.MULTILINE))
+        assert len(matches) == 1, f'Missing/ambiguous camera symbol: {symbol}'
+        camera_symbols[symbol] = int(matches.pop(), 16) & 0x1fffff
+    camera_probe = '''
+local cameraActive = ffi.cast('int32_t*', ram + %d)
+local cameraEnabled = ffi.cast('int32_t*', ram + %d)
+local cameraCollision = ffi.cast('int32_t*', ram + %d)
+local cameraView = ffi.cast('int16_t*', ram + %d)
+local cameraSystem = ffi.cast('uint8_t*', ram + %d)
+local snakeCamera = ffi.cast('int16_t*', ram + %d)
+local function sampleCamera(label)
+    samples[#samples + 1] = string.format('CAM %%s active=%%d enabled=%%d collision=%%d height=%%d first=%%d',
+        label, tonumber(cameraActive[0]), tonumber(cameraEnabled[0]), tonumber(cameraCollision[0]),
+        cameraView[1] - pos[1], tonumber(ffi.cast('int16_t*', cameraSystem + 34)[0]))
+    local headY = snakeCamera[1]
+    if bit.band(tonumber(status[0]), 0x40) ~= 0 then headY = headY - 320 end
+    samples[#samples + 1] = string.format('FRAME %%s eye=%%d,%%d,%%d target=%%d,%%d,%%d head=%%d,%%d,%%d',
+        label, cameraView[0], cameraView[1], cameraView[2], cameraView[4], cameraView[5], cameraView[6],
+        pos[0], headY, pos[2])
+end
+'''
+    script = script.replace('function SMI.stage()', camera_probe % tuple(camera_symbols.values()) + '\nfunction SMI.stage()')
+    script = script.replace("sample('before_walk');", "sampleCamera('standing'); sample('before_walk');")
+    script = script.replace("sample('during_crawl')", "sampleCamera('crawling'); sample('during_crawl')")
+    script = script.replace('if control >= 600 then', '''
+    if control == 440 then pad.setOverride(buttons.TRIANGLE) end
+    if control == 470 then sampleCamera('first_person') end
+    if control == 480 then pad.clearOverride(buttons.TRIANGLE) end
+    if control == 509 then
+        samples[#samples + 1] = 'INPUT L3_index=' .. tostring(l3)
+    end
+    if control == 510 then pad.setOverride(l3) end
+    if control == 514 then pad.clearOverride(l3) end
+    if control == 530 then sampleCamera('disabled') end
+    if control == 540 then pad.setOverride(l3) end
+    if control == 544 then pad.clearOverride(l3) end
+    if control == 550 then sampleCamera('restored') end
+    if control >= 600 then''')
+    # Redux's Lua constants omit L3/R3 in the tested release. setOverride
+    # takes the serial button BIT INDEX, not MGS's byte-swapped PAD_L3 mask.
+    script = script.replace('local buttons = PCSX.CONSTS.PAD.BUTTON',
+                            'local buttons = PCSX.CONSTS.PAD.BUTTON\nlocal l3 = buttons.L3 or 1')
 lua.write_text(script, encoding='utf-8')
 command = [str(args.emulator.resolve()), '-portable', '-noupdate',
            '-no-ui', '-no-webserver', '-no-gdb', '-no-pcdrv',
@@ -141,3 +189,39 @@ assert samples['during_crawl'][:2] != samples['after_crawl'][:2], 'Sustained cra
 assert samples['after_stand'][2] & 0x60 == 0, 'Player did not stand back up'
 assert all(sample[2] & 0x2300 == 0 for sample in samples.values()), 'Damage/downed/death confounds movement'
 print('PASS: dock loaded; walking, crawling displacement and standing verified in live game memory.')
+if args.camera:
+    camera_samples = {label: tuple(map(int, (active, enabled, collision, height, first)))
+                      for label, active, enabled, collision, height, first in re.findall(
+                          r'CAM (\w+) active=(\d+) enabled=(\d+) collision=(\d+) height=(-?\d+) first=(\d+)', evidence)}
+    # Necessary geometric guard, NOT proof that the renderer draws Snake.
+    # The head-height landmark must lie in the PS1 vertical/horizontal viewport.
+    import math
+    framing = re.findall(r'FRAME (\w+) eye=([-\d,]+) target=([-\d,]+) head=([-\d,]+)', evidence)
+    assert {row[0] for row in framing} == {'standing', 'crawling', 'first_person', 'disabled', 'restored'}, 'Missing framing samples'
+    for label, eye, target, head in framing:
+        if label not in ('standing', 'crawling', 'restored'):
+            continue
+        eye, target, head = [tuple(map(int, v.split(','))) for v in (eye, target, head)]
+        forward = [t - e for t, e in zip(target, eye)]
+        length = math.sqrt(sum(v*v for v in forward))
+        forward = [v / length for v in forward]
+        right = [forward[2], 0, -forward[0]]
+        length = math.sqrt(sum(v*v for v in right))
+        right = [v / length for v in right]
+        up = [forward[1]*right[2], forward[2]*right[0]-forward[0]*right[2], -forward[1]*right[0]]
+        relative = [h-e for h, e in zip(head, eye)]
+        depth = sum(a*b for a,b in zip(relative, forward))
+        assert depth > 0, f'{label}: Snake landmark behind camera'
+        x = 320 * sum(a*b for a,b in zip(relative, right)) / depth
+        y = 320 * sum(a*b for a,b in zip(relative, up)) / depth * 58 / 64
+        print(f'FRAMING {label}: head landmark x={x:.1f} y={y:.1f}')
+        assert abs(x) < 160 and abs(y) < 112, f'{label}: Snake head landmark outside viewport'
+    assert camera_samples['standing'][0] == 1, 'Shoulder camera not active while standing'
+    assert camera_samples['crawling'][0] == 1, 'Shoulder camera not active while crawling'
+    assert camera_samples['crawling'][3] < camera_samples['standing'][3], 'Camera did not lower for crawl'
+    assert camera_samples['first_person'][0] == 0, 'Camera failed to yield to first-person'
+    assert camera_samples['first_person'][4] == 1, 'First-person test never entered its target mode'
+    assert camera_samples['disabled'][:2] == (0, 0), 'L3 did not restore original camera'
+    assert camera_samples['crawling'][2] == 1, 'Hazard shortening branch was not exercised'
+    assert camera_samples['restored'][0] == 1, 'Shoulder camera did not resume'
+    print('PASS: shoulder camera lowered for crawl, exercised hazard shortening, yielded to first-person and toggled off/on.')

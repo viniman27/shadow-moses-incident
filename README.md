@@ -2,9 +2,9 @@
 
 Projeto experimental: Metal Gear Solid 1 como base, Leon como protagonista e câmera/combate inspirados em Resident Evil 4 clássico (2005).
 
-**Estado: fundação técnica; a fusão ainda NÃO está implementada nem jogável.**
+**Estado: protótipo de câmera limitado ao Loading Dock; a fusão completa ainda NÃO está implementada.**
 
-MGS Integral foi reconstruído (build original com SHA-256 idêntico ao esperado) e executado em PCSX-Redux/OpenBIOS. Um teste local automatizado entra em Loading Dock pelo seletor de fases e verifica andar, rastejar com deslocamento sustentado e levantar pela memória do jogo. Isso valida a base original, não a fusão: ainda não há câmera nova, combate novo ou modelo de Leon integrado.
+MGS Integral foi reconstruído (build original com SHA-256 idêntico ao esperado) e executado em PCSX-Redux/OpenBIOS. Um teste local automatizado entra em Loading Dock pelo seletor de fases e verifica andar, rastejar com deslocamento sustentado e levantar pela memória do jogo. Há agora uma câmera experimental DEV_EXE em s00a, com Snake visível nas capturas locais, altura por postura e toggle L3. Isso não aprova a câmera para a campanha: combate RE4 e Leon ainda não foram implementados. Consulte os limites e evidências em VERIFICATION.md.
 
 ## Objetivo
 
@@ -30,7 +30,7 @@ Revisões fixadas em `upstreams.lock.json`. Os repositórios externos são check
 
 ## Limites de distribuição
 
-Este repositório publica documentação, automação de controle e testes originais de integração neste estágio. Não contém imagens de discos, BIOS, executáveis reconstruídos, SDKs, modelos, texturas, áudio ou código descompilado dos jogos. O futuro formato de entrega deverá permitir alterações locais sobre arquivos que o usuário tenha direito de utilizar.
+Este repositório publica documentação, automação de controle, código original do protótipo de câmera e testes de integração neste estágio. Não contém imagens de discos, BIOS, executáveis reconstruídos, SDKs, modelos, texturas, áudio ou código descompilado dos jogos. O futuro formato de entrega deverá permitir alterações locais sobre arquivos que o usuário tenha direito de utilizar.
 
 Disponibilidade pública de uma descompilação não equivale a uma licença irrestrita de reutilização. A licença de RE4 exclui expressamente o código reconstruído do jogo/SDK/middleware de seu CC0. Não foi encontrado LICENSE/COPYING na raiz de MGS. Não se presume autorização para redistribuição nem se promete imunidade a reclamações de titulares.
 

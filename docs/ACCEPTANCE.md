@@ -1,6 +1,6 @@
-# Critérios de aceitação — todos pendentes em runtime
+# Critérios de aceitação da fusão
 
-Estes são testes futuros, não resultados executados.
+O conjunto completo permanece pendente. O recorte de câmera/locomoção em s00a tem evidência parcial em VERIFICATION.md; isso não aprova os requisitos amplos abaixo.
 
 ## Primeiro recorte jogável
 

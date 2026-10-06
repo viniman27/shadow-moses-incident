@@ -33,7 +33,7 @@ Saídas relativas ao checkout MGS:
 
 O build dev NÃO precisa manter o hash original. Os dois arquivos são executáveis PS1, não programas Windows; não abrir como aplicações de PC.
 
-## Rodar — ainda não executado
+## Rodar pelo helper upstream — alternativa não utilizada
 
 O upstream documenta, a partir de `build/`:
 
@@ -42,6 +42,12 @@ python run.py --iso <imagem-local-compativel> --pcsx-redux <diretorio-pcsx-redux
 ```
 
 Usar o Python do ambiente virtual no lugar de `python`. O alvo documentado é o disco 1 MGS Integral `SLPM-86247`, não qualquer edição americana/europeia. Verificar a versão e configurar emulador/BIOS conforme necessário, usando arquivos que o usuário tenha direito de utilizar. Nenhuma imagem ou BIOS foi fornecida, procurada indiscriminadamente nos discos ou baixada nesta etapa.
+
+## Instalar/remover a câmera experimental
+
+Na raiz do projeto, `python tools/apply_camera.py` instala o header original e um hook sob `#ifdef DEV_EXE` no checkout MGS fixado. Depois execute o build dev acima e o teste com `--camera` descrito em TESTING.md. O instalador recusa uma revisão diferente e edições não reconhecidas em camera.c.
+
+`python tools/apply_camera.py --remove` restaura camera.c e remove o header gerado. É obrigatório recompilar DEV_EXE para restaurar também o executável. Instalação repetida, remoção exata e reinstalação foram exercitadas. O build matching continua igual ao hash upstream com o hook instalado, pois ele só participa de DEV_EXE.
 
 ## RE4
 

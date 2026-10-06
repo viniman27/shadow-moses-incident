@@ -7,6 +7,10 @@
 !/tools/
 /tools/*
 !/tools/enter_dock.lua
+!/tools/apply_camera.py
+!/src/
+/src/*
+!/src/shoulder_camera.h
 !/tests/
 /tests/*
 !/tests/run_stage_smoke.py

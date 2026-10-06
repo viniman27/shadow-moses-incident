@@ -39,7 +39,17 @@ Na revisao MGS fixada, `source/game/loader.c` troca o diretorio carregado de `ti
 
 ## Limites
 
-Este e um teste de integracao da BASE ORIGINAL, nao uma implementacao de Leon/camera/combate RE4. Nao prova campanha completa, dutos, clearance de levantar sob teto, fidelidade visual, audio ou performance. Usa frames e uma rota especifica do spawn s00a; outro build/plataforma exige revalidacao. O smoke test nao substitui playthrough e capturas visuais.
+Sem `--camera`, o teste verifica a locomocao do executavel dev selecionado. Com `--camera`, verifica tambem o prototipo descrito abaixo. Nao implementa Leon ou combate RE4. Nao prova campanha completa, dutos, clearance de levantar sob teto, fidelidade visual, audio ou performance. Usa frames e uma rota especifica do spawn s00a; outro build/plataforma exige revalidacao. O smoke test nao substitui playthrough e capturas visuais.
+
+## Camera experimental
+
+Instale com `python tools/apply_camera.py`, recompile DEV_EXE e acrescente `--camera` ao comando de teste. Exige os simbolos do prototipo no mapa corrente. Observa ativacao, reducao de altura no rastejo, ramo de retracao por hazard, cessao a primeira pessoa (Triangle) e L3 off/on. Nao escreve RAM de gameplay.
+
+A API Lua do Redux testado omite `PCSX.CONSTS.PAD.BUTTON.L3`. O replay usa o indice serial 1 quando a constante falta: `pad.setOverride(l3)` e `pad.clearOverride(l3)`. Esse indice NAO e a mascara MGS `PAD_L3` (0x0200). O erro anterior passava nil; trocar o tipo de controle nao era a correcao do teste. Para uso manual, configure um dispositivo Analog/DualShock e o mapeamento L3; o dispositivo digital nao mapeia o clique do analogico no teclado/controle fisico.
+
+O teste calcula a projecao aproximada de um ponto na altura do bone6. No rastejo desconta os 320 que MGS soma a GM_SnakeCamera. Rejeita um ponto atras da camera ou fora do viewport, mas NAO prova visibilidade do modelo, ausencia de clipping ou qualidade de enquadramento. Exige inspecao visual separada.
+
+Para a inspecao local, use o `stage_test.lua` recem-gerado pelo mesmo build. Crie uma copia local, acrescente `PCSX.pauseEmulator()` em um frame de controle desejado e lance o mesmo executavel com `-dofile` (nao `-lua`) e sem `-no-ui`. Nao reutilize enderecos de outro asm.map. Capture somente a janela do emulador; nao publique screenshots/assets. Frames exercitados: 149 (parado), 205 (apos andar), 320 (rastejando), 530 (original apos L3) e 550 (experimental apos segundo L3). Encerre a instancia antes do proximo teste; nao confunda encerramento manual de uma inspecao com PASS do smoke completo.
 
 ## Fluxo de entrega
 
